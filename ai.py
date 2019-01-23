@@ -88,6 +88,23 @@ class ReplayMemory(object):
                 del self.reward_window[0] # delete
             return action # return
         
+        def score(self): #score function
+            return sum(self.reward_window)/(len(self.reward_window)+1.) #score
+        
+        def save(self): #save functino for reusabilitly
+            torch.save({'state_dict': self.model.state_dict(), #save model in python dictionary      
+                        'optimizer' : self.optimizer.state_dict(),
+                       }, 'previous_brain.pth') #name of file
+        def load(self): #load file
+            if os.path.isfile('previous_brain.pth'):
+                print("=> loading checkpoint... ")
+                checkpoint = torch.load('previous_brain.pth')
+                self.model.load_state_dict(checkpoint['state_dict'])
+                self.optimizer.load_state_dict(checkpoint['optimizer'])
+                print("finish !")
+            else:
+                print("checkpoint not found...")        
+        
         
         
             
