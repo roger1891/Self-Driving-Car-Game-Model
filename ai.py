@@ -23,5 +23,10 @@ class Network(nn.Module):
         self.fc1 = nn.Linear(input_size, 30) # full connection between hidden layer to input layer
         self.fc2 = nn.Linear(30, nb_action) # full connection between hidden layer to output layer
         
+    # activate neuron function for forward propagation
+    def forward(self, state, ): # self, directional state
+        x = F.relu(self.fc1(state)) #activate hidden neurons
+        q_values = self.fc2(x) # activate ouput neurons
+        return q_values # return q_values of whether to go left, right, etc.
         
 
