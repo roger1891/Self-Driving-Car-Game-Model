@@ -28,5 +28,22 @@ class Network(nn.Module):
         x = F.relu(self.fc1(state)) #activate hidden neurons
         q_values = self.fc2(x) # activate ouput neurons
         return q_values # return q_values of whether to go left, right, etc.
+    
+# implementing experience replay class
         
-
+class ReplayMemory(object):
+    def __init__(self, capacity): # constuctor
+        self.capacity = capacity # number of transitions in event
+        self.memory = [] #list for memories
+        
+    def push(self, event): #push function
+        self.memory.append(event) # append event to list
+        if len(self.memory) > self.capacity: # make sure it has 100 events
+            del self.memory[0] #remove first element to ensure same length for capacity
+            
+    def sample(self, batch_size): #sample fucntions
+        #zip function = if list = ((1,2,3), (4,5,6)) will turn to (1,4), (2,3) (5,6)
+        samples = zip(*random.sample(self.memory, batch_size)) #random samples that have a fixed size of batch size
+        return map(lambda x : Variable(torch.cat(x, 0)), samples) # return map and concatinate with first dimension and conert sesors into torch variables
+            
+        
