@@ -72,4 +72,7 @@ class ReplayMemory(object):
             td_loss.backward(retain_variables = True) #backward propagation
             self.optimizer.step() #update weights
             
-            
+        #connection between AI and game
+        def update(self, reward, new_signal): # last reward = reward, last signal = new_signal in map class
+            new_state = torch.Tensor(new_signal).float().unsqueeze(0) #update all elements in transition
+            self.memory.push((self.last_state, new_state, torch.LongTensor([int(self.last_action)]), torch.Tensor([self.last_reward])) #update memory
