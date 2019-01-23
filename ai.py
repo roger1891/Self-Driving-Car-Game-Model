@@ -12,3 +12,16 @@ import torch.optim as optim #optimizers to perform categorization
 import torch.autograd as autograd #to make conversions
 from torch.autograd import Variable
 
+#Creating the architecture of the Neural Network
+
+class Network(nn.Module):
+    
+    def __init__(self, input_size, nb_action): # refer to this object, 5 sensors, action
+        super(Network, self).__init__() # use tools of module class
+        self.input_size = input_size # assign input size
+        self.nb_action = nb_action # assign nb_action
+        self.fc1 = nn.Linear(input_size, 30) # full connection between hidden layer to input layer
+        self.fc2 = nn.Linear(30, nb_action) # full connection between hidden layer to output layer
+        
+        
+
