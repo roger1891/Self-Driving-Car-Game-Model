@@ -53,7 +53,12 @@ class ReplayMemory(object):
             self.reward_window = [] # reward window
             self.model = Network(input_size, nb_action) # neural network
             self.memory = ReplayMemory(100000) # memory
-            self.optimizer = optim.Adam(self.model.parameters(), 1r = 0.001) #connect optimizer to neural network
+            self.optimizer = optim.Adam(self.model.parameters(), lr = 0.001) #connect optimizer to neural network
             self.last_state = torch.Tensor(input_size).unsqueeze(0) #last state: 5 elements of input states 
             self.last_action = 0 # last action
             self.last_reward = 0 # last reward
+                    
+        def select_action(self, state): # action function
+            probs = F.softmax(self.model(Variable(state, volatile = True)) * 7) # probabiliy distribution for q values
+            action = probs.multinomial() # ranodm draw for final action
+            return action.data[0,0] #return
