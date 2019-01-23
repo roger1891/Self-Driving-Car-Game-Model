@@ -75,4 +75,41 @@ class ReplayMemory(object):
         #connection between AI and game
         def update(self, reward, new_signal): # last reward = reward, last signal = new_signal in map class
             new_state = torch.Tensor(new_signal).float().unsqueeze(0) #update all elements in transition
-            self.memory.push((self.last_state, new_state, torch.LongTensor([int(self.last_action)]), torch.Tensor([self.last_reward])) #update memory
+            self.memory.push((self.last_state, new_state, torch.LongTensor([int(self.last_action)]), torch.Tensor([self.last_reward]))) #update memory
+            action = self.select_action(new_state) # action state
+            if len(self.memory.memory) > 100 : # if memory is larger than 100
+                batch_state, batch_next_state, batch_reward, batch_action = self.memory.sample(100) # learn from 100 transitions of memory
+                self.learn(batch_state, batch_next_state, batch_reward, batch_action) #learning
+            self.last_action = action #action
+            self.last_action = new_state #new state
+            self.last_reward = reward #reward
+            self.reward_window.append(reward)
+            if len(self.reward_window) > 1000: #if larger than a 1000
+                del self.reward_window[0] # delete
+            return action # return
+        
+        
+        
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
