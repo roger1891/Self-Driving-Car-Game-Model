@@ -62,3 +62,14 @@ class ReplayMemory(object):
             probs = F.softmax(self.model(Variable(state, volatile = True)) * 7) # probabiliy distribution for q values
             action = probs.multinomial() # ranodm draw for final action
             return action.data[0,0] #return
+        
+        def learn(self, batch_state, batch_next_state, batch_reward, batch_action): #learn function
+            outputs = self.model(batch_state).gather(1, batch_action).unsqueeze(1).squeeze(1) #output of model
+            next_outputs = self.model(batch_next_state).detach().max(1)[0]
+            target = self.gamma * next_outputs + batch_reward
+            td_loss = F.smooth_l1_loss(outputs, target) #best loss function for q learning
+            self.optimizer.zero_grad() #weights
+            td_loss.backward(retain_variables = True) #backward propagation
+            self.optimizer.step() #update weights
+            
+            
