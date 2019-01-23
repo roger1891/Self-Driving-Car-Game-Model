@@ -46,4 +46,14 @@ class ReplayMemory(object):
         samples = zip(*random.sample(self.memory, batch_size)) #random samples that have a fixed size of batch size
         return map(lambda x : Variable(torch.cat(x, 0)), samples) # return map and concatinate with first dimension and conert sesors into torch variables
             
-        
+    # implementing deep q learning
+    class Dqn():
+        def __init__(self, input_size, nb_action, gamma): #constructor
+            self.gamma = gamma # delay coefficient
+            self.reward_window = [] # reward window
+            self.model = Network(input_size, nb_action) # neural network
+            self.memory = ReplayMemory(100000) # memory
+            self.optimizer = optim.Adam(self.model.parameters(), 1r = 0.001) #connect optimizer to neural network
+            self.last_state = torch.Tensor(input_size).unsqueeze(0) #last state: 5 elements of input states 
+            self.last_action = 0 # last action
+            self.last_reward = 0 # last reward
