@@ -46,64 +46,72 @@ class ReplayMemory(object):
         samples = zip(*random.sample(self.memory, batch_size)) #random samples that have a fixed size of batch size
         return map(lambda x : Variable(torch.cat(x, 0)), samples) # return map and concatinate with first dimension and conert sesors into torch variables
             
-    # implementing deep q learning
-    class Dqn():
-        def __init__(self, input_size, nb_action, gamma): #constructor
-            self.gamma = gamma # delay coefficient
-            self.reward_window = [] # reward window
-            self.model = Network(input_size, nb_action) # neural network
-            self.memory = ReplayMemory(100000) # memory
-            self.optimizer = optim.Adam(self.model.parameters(), lr = 0.001) #connect optimizer to neural network
-            self.last_state = torch.Tensor(input_size).unsqueeze(0) #last state: 5 elements of input states 
-            self.last_action = 0 # last action
-            self.last_reward = 0 # last reward
-                    
-        def select_action(self, state): # action function
-            probs = F.softmax(self.model(Variable(state, volatile = True)) * 7) # probabiliy distribution for q values
-            action = probs.multinomial() # ranodm draw for final action
-            return action.data[0,0] #return
+# implementing deep q learning
+class Dqn():
+    def __init__(self, input_size, nb_action, gamma): #constructor
+        self.gamma = gamma # delay coefficient
+        self.reward_window = [] # reward window
+        self.model = Network(input_size, nb_action) # neural network
+        self.memory = ReplayMemory(100000) # memory
+        self.optimizer = optim.Adam(self.model.parameters(), lr = 0.001) #connect optimizer to neural network
+        self.last_state = torch.Tensor(input_size).unsqueeze(0) #last state: 5 elements of input states 
+        self.last_action = 0 # last action
+        self.last_reward = 0 # last reward
+                
+    def select_action(self, state): # action function
+        #with AI
+        probs = F.softmax(self.model(Variable(state, volatile = True)) * 100) # probabiliy distribution for q values
+        #without AI
+        #probs = F.softmax(self.model(Variable(state, volatile = True)) * 0)
+        #m = torch.distributions.Categorical(probs)
+        #action = m.sample() # random draw for final action   
+        action = probs.multinomial(1) # random draw for final action
+        return action.data[0, 0] #return
+
         
-        def learn(self, batch_state, batch_next_state, batch_reward, batch_action): #learn function
-            outputs = self.model(batch_state).gather(1, batch_action).unsqueeze(1).squeeze(1) #output of model
-            next_outputs = self.model(batch_next_state).detach().max(1)[0]
-            target = self.gamma * next_outputs + batch_reward
-            td_loss = F.smooth_l1_loss(outputs, target) #best loss function for q learning
-            self.optimizer.zero_grad() #weights
-            td_loss.backward(retain_variables = True) #backward propagation
-            self.optimizer.step() #update weights
-            
-        #connection between AI and game
-        def update(self, reward, new_signal): # last reward = reward, last signal = new_signal in map class
-            new_state = torch.Tensor(new_signal).float().unsqueeze(0) #update all elements in transition
-            self.memory.push((self.last_state, new_state, torch.LongTensor([int(self.last_action)]), torch.Tensor([self.last_reward]))) #update memory
-            action = self.select_action(new_state) # action state
-            if len(self.memory.memory) > 100 : # if memory is larger than 100
-                batch_state, batch_next_state, batch_reward, batch_action = self.memory.sample(100) # learn from 100 transitions of memory
-                self.learn(batch_state, batch_next_state, batch_reward, batch_action) #learning
-            self.last_action = action #action
-            self.last_action = new_state #new state
-            self.last_reward = reward #reward
-            self.reward_window.append(reward)
-            if len(self.reward_window) > 1000: #if larger than a 1000
-                del self.reward_window[0] # delete
-            return action # return
+    def learn(self, batch_state, batch_next_state, batch_reward, batch_action):  #learn function
+        outputs = self.model(batch_state).gather(1, batch_action.unsqueeze(1)).squeeze(1) #output of model
+        next_outputs = self.model(batch_next_state).detach().max(1)[0]
+        target = self.gamma*next_outputs + batch_reward
+        td_loss = F.smooth_l1_loss(outputs, target) #best loss function for q learning
+        self.optimizer.zero_grad() #weights
+        #original: td_loss.backward(retain_variables = True) #backward propagation
+        td_loss.backward(retain_graph = True) #backward propagation
+        self.optimizer.step()   #update weights     
         
-        def score(self): #score function
-            return sum(self.reward_window)/(len(self.reward_window)+1.) #score
-        
-        def save(self): #save functino for reusabilitly
-            torch.save({'state_dict': self.model.state_dict(), #save model in python dictionary      
-                        'optimizer' : self.optimizer.state_dict(),
-                       }, 'previous_brain.pth') #name of file
-        def load(self): #load file
-            if os.path.isfile('previous_brain.pth'):
-                print("=> loading checkpoint... ")
-                checkpoint = torch.load('previous_brain.pth')
-                self.model.load_state_dict(checkpoint['state_dict'])
-                self.optimizer.load_state_dict(checkpoint['optimizer'])
-                print("finish !")
-            else:
-                print("checkpoint not found...")        
+    #connection between AI and game 
+    def update(self, reward, new_signal): # last reward = reward, last signal = new_signal in map class
+        new_state = torch.Tensor(new_signal).float().unsqueeze(0) #update all elements in transition
+        self.memory.push((self.last_state, new_state, torch.LongTensor([int(self.last_action)]), torch.Tensor([self.last_reward]))) #update memory
+        action = self.select_action(new_state) # action state
+        if len(self.memory.memory) > 100: # if memory is larger than 100
+            batch_state, batch_next_state, batch_action, batch_reward = self.memory.sample(100)  # learn from 100 transitions of memory
+            self.learn(batch_state, batch_next_state, batch_reward, batch_action)
+        self.last_action = action #learning
+        self.last_state = new_state #action
+        self.last_reward = reward #new state
+        self.reward_window.append(reward) #reward
+        if len(self.reward_window) > 1000: #if larger than a 1000
+            del self.reward_window[0] # delete
+        return action   # return 
+     
+    
+    def score(self): #score function
+        return sum(self.reward_window)/(len(self.reward_window)+1.) #score
+    
+    def save(self): #save functino for reusabilitly
+        torch.save({'state_dict': self.model.state_dict(), #save model in python dictionary      
+                    'optimizer' : self.optimizer.state_dict(),
+                   }, 'previous_brain.pth') #name of file
+    def load(self): #load file
+        if os.path.isfile('previous_brain.pth'):
+            print("=> loading checkpoint... ")
+            checkpoint = torch.load('previous_brain.pth')
+            self.model.load_state_dict(checkpoint['state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+            print("finish !")
+        else:
+            print("checkpoint not found...")        
         
         
         
